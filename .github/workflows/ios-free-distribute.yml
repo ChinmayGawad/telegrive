@@ -71,6 +71,27 @@ jobs:
         run: |
           chmod +x tool/build_ipa.sh
           ./tool/build_ipa.sh
+      - name: Verify IPA exists
+        run: |
+          IPA_PATH=$(python - <<'PY'
+import yaml, re, sys
+with open('pubspec.yaml') as f:
+    data = yaml.safe_load(f)
+print('build/ios/ipa/telegrive-' + data['version'] + '.ipa')
+PY)
+          echo "Looking for $IPA_PATH"
+          if [ -f "$IPA_PATH" ]; then
+            echo "✅ IPA found"
+            ls -l "$IPA_PATH"
+          else
+            echo "❌ IPA not found"
+            exit 1
+          fi
+      - name: Upload IPA as artifact (debug)
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-ipa
+          path: build/ios/ipa/*.ipa
 
       - name: Update AltStore & SideStore Source Feed
         id: update_source
