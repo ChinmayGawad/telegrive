@@ -14,7 +14,7 @@ on:
 jobs:
   build-and-distribute:
     name: Build Unsigned IPA & Update AltStore Feed
-    runs-on: macos-14
+    runs-on: macos-latest
     permissions:
       contents: write
 
@@ -71,23 +71,20 @@ jobs:
         run: |
           chmod +x tool/build_ipa.sh
           ./tool/build_ipa.sh
+
       - name: Verify IPA exists
         run: |
-          IPA_PATH=$(python - <<'PY'
-            import yaml, sys
-            with open('pubspec.yaml') as f:
-                data = yaml.safe_load(f)
-            short_version = data['version'].split('+')[0]
-            print(f"build/ios/ipa/telegrive-{short_version}.ipa")
-          PY)
+          VERSION=$(sed -n 's/^version: *\([^+]*\).*/\1/p' pubspec.yaml)
+          IPA_PATH="build/ios/ipa/telegrive-$VERSION.ipa"
           echo "Looking for $IPA_PATH"
           if [ -f "$IPA_PATH" ]; then
             echo "✅ IPA found"
-            ls -l "$IPA_PATH"
+            ls -lh "$IPA_PATH"
           else
             echo "❌ IPA not found"
             exit 1
           fi
+
       - name: Upload IPA as artifact (debug)
         uses: actions/upload-artifact@v4
         with:
@@ -148,120 +145,6 @@ jobs:
           }
           versions = [v for v in existing if v.get("version") != version]
           versions.insert(0, entry)
-          app["versions"] = versions
-
-          with open(feed_path, "w", encoding="utf-8") as f:
-              json.dump(feed, f, indent=2, ensure_ascii=False)
-          EOF
-          VERSION=$(sed -n 's/^version: *\([^+]*\).*/\1/p' pubspec.yaml)
-          IPA_PATH="build/ios/ipa/telegrive-$VERSION.ipa"
-
-          if [ ! -f "$IPA_PATH" ]; then
-            echo "Error: $IPA_PATH was not generated!" >&2
-            exit 1
-          fi
-
-          IPA_SIZE=$(stat -f%z "$IPA_PATH")
-          DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          TAG="${{ github.ref_name }}"
-          if [ -z "$TAG" ] || [[ "$TAG" != v* ]]; then
-            TAG="v$VERSION"
-          fi
-          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/$TAG/telegrive-$VERSION.ipa"
-
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "ipa_path=$IPA_PATH" >> $GITHUB_OUTPUT
-
-          # ---- update docs/community-source.json ----
-          python3 - <<EOF
-          import json, os
-
-          feed_path = "docs/community-source.json"
-          with open(feed_path, "r", encoding="utf-8") as f:
-              feed = json.load(f)
-
-          app = feed["apps"][0]
-          version = "$VERSION"
-          download_url = "$DOWNLOAD_URL"
-          size = int("$IPA_SIZE")
-          date_str = "$DATE"
-
-          app["version"] = version
-          app["versionDate"] = date_str
-          app["downloadURL"] = download_url
-          app["size"] = size
-
-          existing = app.get("versions", [])
-          entry = {
-              "version": version,
-              "date": date_str,
-              "size": size,
-              "downloadURL": download_url,
-              "localizedDescription": f"Release {version} of Telegrive for iPhone.",
-              "minOSVersion": "15.0"
-          }
-          versions = [v for v in existing if v.get("version") != version]
-          versions.insert(0, entry)
-          app["versions"] = versions
-
-          with open(feed_path, "w", encoding="utf-8") as f:
-              json.dump(feed, f, indent=2, ensure_ascii=False)
-          EOF
-
-          VERSION=$(sed -n 's/^version: *\([^+]*\).*/\1/p' pubspec.yaml)
-          IPA_PATH="build/ios/ipa/telegrive-$VERSION.ipa"
-          
-          if [ ! -f "$IPA_PATH" ]; then
-            echo "Error: $IPA_PATH was not generated!" >&2
-            exit 1
-          fi
-          
-          IPA_SIZE=$(stat -f%z "$IPA_PATH")
-          DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          TAG="${{ github.ref_name }}"
-          if [ -z "$TAG" ] || [[ "$TAG" != v* ]]; then
-            TAG="v$VERSION"
-          fi
-          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/$TAG/telegrive-$VERSION.ipa"
-          
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "ipa_path=$IPA_PATH" >> $GITHUB_OUTPUT
-          
-          # Update docs/community-source.json with Python
-          python3 - <<EOF
-          import json, os
-
-          feed_path = "docs/community-source.json"
-          with open(feed_path, "r", encoding="utf-8") as f:
-              feed = json.load(f)
-
-          app = feed["apps"][0]
-          version = "$VERSION"
-          download_url = "$DOWNLOAD_URL"
-          size = int("$IPA_SIZE")
-          date_str = "$DATE"
-
-          app["version"] = version
-          app["versionDate"] = date_str
-          app["downloadURL"] = download_url
-          app["size"] = size
-
-          # Prepend or update version in versions array
-          existing_versions = app.get("versions", [])
-          updated_version = {
-              "version": version,
-              "date": date_str,
-              "size": size,
-              "downloadURL": download_url,
-              "localizedDescription": f"Release {version} of Telegrive for iPhone.",
-              "minOSVersion": "15.0"
-          }
-          
-          # Replace if version exists or prepend
-          versions = [v for v in existing_versions if v.get("version") != version]
-          versions.insert(0, updated_version)
           app["versions"] = versions
 
           with open(feed_path, "w", encoding="utf-8") as f:
