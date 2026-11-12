@@ -17,17 +17,17 @@
       "category": "utilities",
       "minOSVersion": "15.0",
       "version": "1.0.0",
-      "versionDate": "2026-11-12T00:00:00Z",
+      "versionDate": "2026-11-12T13:37:04Z",
       "versionDescription": "Initial release of Telegrive for iPhone.",
       "downloadURL": "https://github.com/ChinmayGawad/telegrive/releases/download/v1.0.0/telegrive-1.0.0.ipa",
-      "size": 25026356,
+      "size": 25061605,
       "versions": [
         {
           "version": "1.0.0",
-          "date": "2026-11-12T00:00:00Z",
-          "size": 25026356,
+          "date": "2026-11-12T13:37:04Z",
+          "size": 25061605,
           "downloadURL": "https://github.com/ChinmayGawad/telegrive/releases/download/v1.0.0/telegrive-1.0.0.ipa",
-          "localizedDescription": "Initial release of Telegrive for iPhone.",
+          "localizedDescription": "Release 1.0.0 of Telegrive for iPhone.",
           "minOSVersion": "15.0"
         }
       ]
