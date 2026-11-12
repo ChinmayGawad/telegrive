@@ -1,0 +1,151 @@
+name: Free iOS Release & Distribution
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag / Release version (e.g. v1.0.1)'
+        required: false
+        default: ''
+
+jobs:
+  build-and-distribute:
+    name: Build Unsigned IPA & Update AltStore Feed
+    runs-on: macos-14
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Cache TDLib xcframework
+        id: cache-tdlib
+        uses: actions/cache@v4
+        with:
+          path: ios/Frameworks/tdjson.xcframework
+          key: tdlib-ios-${{ hashFiles('tool/build_tdlib_ios.sh') }}
+
+      - name: Prepare TDLib Framework
+        run: |
+          if [ ! -d "ios/Frameworks/tdjson.xcframework" ]; then
+            echo "TDLib xcframework not found in cache. Checking for prebuilt release asset..."
+            mkdir -p ios/Frameworks
+            
+            # 1. Try downloading prebuilt framework from release asset if present
+            curl -fLsS -o tdjson.zip \
+              https://github.com/${{ github.repository }}/releases/download/v1.0.0/tdjson.xcframework.zip || true
+            
+            if [ -f tdjson.zip ]; then
+              unzip -q tdjson.zip -d ios/Frameworks/
+              rm tdjson.zip
+            else
+              echo "No prebuilt zip found. Installing gperf and compiling TDLib from source..."
+              brew install gperf || true
+              chmod +x tool/build_tdlib_ios.sh
+              ./tool/build_tdlib_ios.sh
+            fi
+          fi
+          
+          # Verify framework exists
+          if [ ! -d "ios/Frameworks/tdjson.xcframework" ]; then
+            echo "Error: tdjson.xcframework is missing!" >&2
+            exit 1
+          fi
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Unsigned IPA
+        run: |
+          chmod +x tool/build_ipa.sh
+          ./tool/build_ipa.sh
+
+      - name: Update AltStore & SideStore Source Feed
+        id: update_source
+        run: |
+          VERSION=$(sed -n 's/^version: *\([^+]*\).*/\1/p' pubspec.yaml)
+          IPA_PATH="build/ios/ipa/telegrive-$VERSION.ipa"
+          
+          if [ ! -f "$IPA_PATH" ]; then
+            echo "Error: $IPA_PATH was not generated!" >&2
+            exit 1
+          fi
+          
+          IPA_SIZE=$(stat -f%z "$IPA_PATH")
+          DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          TAG="${{ github.ref_name }}"
+          if [ -z "$TAG" ] || [[ "$TAG" != v* ]]; then
+            TAG="v$VERSION"
+          fi
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/$TAG/telegrive-$VERSION.ipa"
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "ipa_path=$IPA_PATH" >> $GITHUB_OUTPUT
+          
+          # Update docs/community-source.json with Python
+          python3 - <<EOF
+          import json, os
+
+          feed_path = "docs/community-source.json"
+          with open(feed_path, "r", encoding="utf-8") as f:
+              feed = json.load(f)
+
+          app = feed["apps"][0]
+          version = "$VERSION"
+          download_url = "$DOWNLOAD_URL"
+          size = int("$IPA_SIZE")
+          date_str = "$DATE"
+
+          app["version"] = version
+          app["versionDate"] = date_str
+          app["downloadURL"] = download_url
+          app["size"] = size
+
+          # Prepend or update version in versions array
+          existing_versions = app.get("versions", [])
+          updated_version = {
+              "version": version,
+              "date": date_str,
+              "size": size,
+              "downloadURL": download_url,
+              "localizedDescription": f"Release {version} of Telegrive for iPhone.",
+              "minOSVersion": "15.0"
+          }
+          
+          # Replace if version exists or prepend
+          versions = [v for v in existing_versions if v.get("version") != version]
+          versions.insert(0, updated_version)
+          app["versions"] = versions
+
+          with open(feed_path, "w", encoding="utf-8") as f:
+              json.dump(feed, f, indent=2, ensure_ascii=False)
+          EOF
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.update_source.outputs.tag }}
+          name: Release ${{ steps.update_source.outputs.version }}
+          files: ${{ steps.update_source.outputs.ipa_path }}
+          generate_release_notes: true
+
+      - name: Commit and Push Updated Source Feed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/community-source.json
+          git commit -m "chore: update community-source.json for ${{ steps.update_source.outputs.version }} [skip ci]" || echo "No changes to commit"
+          git push

@@ -1,0 +1,36 @@
+{
+  "name": "Telegrive Source",
+  "identifier": "dev.ragoose.telegrive.source",
+  "subtitle": "Telegram cloud drive & photo backup",
+  "description": "Official community source for installing and auto-updating Telegrive directly through SideStore or AltStore on iOS.",
+  "iconURL": "https://chinmaygawad.github.io/telegrive/assets/brand/mark-96.png",
+  "website": "https://chinmaygawad.github.io/telegrive",
+  "apps": [
+    {
+      "name": "Telegrive",
+      "bundleIdentifier": "dev.ragoose.telegrive",
+      "developerName": "Dawit Beyene",
+      "subtitle": "Unlimited Telegram drive & backup",
+      "localizedDescription": "Use your Telegram account as a drive with no storage limit, and back up your photos to it in full quality.",
+      "iconURL": "https://chinmaygawad.github.io/telegrive/assets/brand/mark-96.png",
+      "tintColor": "#0088CC",
+      "category": "utilities",
+      "minOSVersion": "15.0",
+      "version": "1.0.0",
+      "versionDate": "2026-11-12T00:00:00Z",
+      "versionDescription": "Initial release of Telegrive for iPhone.",
+      "downloadURL": "https://github.com/ChinmayGawad/telegrive/releases/download/v1.0.0/telegrive-1.0.0.ipa",
+      "size": 25026356,
+      "versions": [
+        {
+          "version": "1.0.0",
+          "date": "2026-11-12T00:00:00Z",
+          "size": 25026356,
+          "downloadURL": "https://github.com/ChinmayGawad/telegrive/releases/download/v1.0.0/telegrive-1.0.0.ipa",
+          "localizedDescription": "Initial release of Telegrive for iPhone.",
+          "minOSVersion": "15.0"
+        }
+      ]
+    }
+  ]
+}
