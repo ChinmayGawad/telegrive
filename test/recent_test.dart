@@ -128,7 +128,7 @@ void main() {
       starred: starred,
     );
 
-    testWidgets('starred folders sit above Recent, each with what it holds', (
+    testWidgets('starred folders sit below Recent, each with what it holds', (
       tester,
     ) async {
       // Tall enough that the whole of Home is laid out.
@@ -163,9 +163,11 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Empty folder', skipOffstage: false), findsOneWidget);
+      // Home now shows Recent before Starred folders (new order: Activity →
+      // Continue Playing → Recent → Starred folders → Storage).
       expect(
         tester.getTopLeft(find.text('Invoices', skipOffstage: false)).dy,
-        lessThan(
+        greaterThan(
           tester.getTopLeft(find.text('Recent', skipOffstage: false)).dy,
         ),
       );
