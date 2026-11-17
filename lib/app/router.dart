@@ -28,6 +28,7 @@ import '../features/private/presentation/private_screen.dart';
 import '../features/photos/presentation/photos_screen.dart';
 import '../features/search/presentation/search_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
+import '../features/setup/presentation/api_setup_screen.dart';
 import '../features/setup/presentation/setup_screen.dart';
 import '../features/setup/presentation/splash_screen.dart';
 import '../features/space/presentation/space_screen.dart';
@@ -69,6 +70,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (_, state) => phase.value.redirect(state.matchedLocation),
     routes: [
       _gate(AppPhase.starting, const SplashScreen()),
+      _gate(AppPhase.apiSetup, const ApiSetupScreen()),
       _gate(AppPhase.welcome, const WelcomeScreen()),
       _gate(AppPhase.phone, const PhoneScreen()),
       _gate(AppPhase.code, const CodeScreen()),

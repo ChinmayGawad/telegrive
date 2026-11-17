@@ -5,12 +5,14 @@ import 'package:handy_tdlib/api.dart' as td;
 import '../features/auth/data/auth_controller.dart';
 import '../features/drive/data/drive_session.dart';
 import '../features/setup/data/drive_setup.dart';
+import '../infrastructure/telegram/api_credentials.dart';
 import '../infrastructure/telegram/telegram_client.dart';
 
 /// Where the app is in its life, from the first frame to an open drive. The
 /// router follows this; screens never navigate between these by hand.
 enum AppPhase {
   starting('/splash'),
+  apiSetup('/api-setup'),
   welcome('/welcome'),
   phone('/sign-in/phone'),
   code('/sign-in/code'),
@@ -61,6 +63,12 @@ bool _signedOut(td.AuthorizationState? auth) =>
     asksToSignIn(auth) || auth is td.AuthorizationStateLoggingOut;
 
 final appPhaseProvider = Provider<AppPhase>((ref) {
+  // Check API credentials first — before TDLib even starts.
+  final creds = ref.watch(apiCredentialsProvider);
+  // While loading credentials show splash; if missing show setup.
+  if (!creds.hasValue) return AppPhase.starting;
+  if (creds.value == null) return AppPhase.apiSetup;
+
   // Watched first, so its listener follows TDLib from the start whatever
   // phase this returns.
   final ui = ref.watch(authControllerProvider);

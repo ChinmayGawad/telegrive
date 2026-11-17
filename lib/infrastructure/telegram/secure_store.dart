@@ -52,6 +52,21 @@ class SecureStore {
 
   Future<void> clearDatabaseKey() => _storage.delete(key: _databaseKey);
 
+  // ── Generic key/value helpers used by ApiCredentialStore ──────────────
+
+  Future<String?> readKey(String key) => _read(key);
+
+  Future<void> writeKey(String key, String value) async {
+    try {
+      await _storage.write(key: key, value: value).timeout(timeout);
+    } catch (e) {
+      debugPrint('[SecureStore] write($key) failed: $e');
+      throw SecureStoreException(e);
+    }
+  }
+
+  Future<void> deleteKey(String key) => _storage.delete(key: key);
+
   /// 256 random bits from the platform CSPRNG.
   ///
   /// Standard base64, not base64url: TDLib's JSON interface carries `bytes`

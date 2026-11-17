@@ -9,6 +9,7 @@ import 'package:handy_tdlib/handy_tdlib.dart' show TdPlugin;
 import 'package:path_provider/path_provider.dart';
 
 import '../../core/config/app_config.dart';
+import 'api_credentials.dart';
 import 'device_info.dart';
 import 'secure_store.dart';
 import 'td_library.dart';
@@ -464,6 +465,12 @@ class TelegramClient {
 
     // Telegram's Devices list names the session after these, so the person
     // can tell this phone from another one signed in with Telegrive.
+    final creds = await _secureStore.readApiCredentials();
+    if (creds == null || !creds.isValid) {
+      // Credentials not yet entered — the apiSetup screen will collect them.
+      // Do not mark as fatal; the phase provider handles the redirect.
+      return;
+    }
     final (device, version) = await (DeviceInfo.read(), AppConfig.appVersion()).wait;
     td.SetTdlibParameters parameters(String key) => td.SetTdlibParameters(
       useTestDc: false,
@@ -474,8 +481,8 @@ class TelegramClient {
       useChatInfoDatabase: true,
       useMessageDatabase: true,
       useSecretChats: false,
-      apiId: AppConfig.telegramApiId,
-      apiHash: AppConfig.telegramApiHash,
+      apiId: creds.apiId,
+      apiHash: creds.apiHash,
       systemLanguageCode: Platform.localeName.split('_').first,
       deviceModel: device.model,
       systemVersion: device.system,
