@@ -17,6 +17,9 @@ import UserNotifications
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "PrivacySnapshot") {
+      PrivacySnapshot.shared.register(with: registrar.messenger())
+    }
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "DeviceStorage") {
       DeviceStorage.register(with: registrar.messenger())
     }

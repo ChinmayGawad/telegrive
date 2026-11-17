@@ -20,8 +20,10 @@ your files stay in Telegram.
 ## What it does
 
 - **Keeps as much as you like,** with files of any size.
-- **Backs up your photos** in full quality. Turn it on once and new photos
-  follow by themselves, or upload one album from your gallery. Then free
+- **Backs up your photos** in full quality. On Android, new photos can
+  follow by themselves when your backup settings allow it. On iPhone,
+  keep Telegrive open while photos back up; backup continues when you
+  reopen it. You can also upload one album from your gallery. Then free
   up space on your phone.
 - **Brings over Google Photos,** with dates and albums.
 - **Works like a file manager:** folders, stars, albums, and a trash you

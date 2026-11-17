@@ -4,14 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:photo_manager/photo_manager.dart';
 
 import '../../../app/app_phase.dart';
-import '../../../app/theme/file_style.dart';
 import '../../../app/theme/tokens.dart';
 import '../../../core/files/file_kind.dart';
 import '../../../core/format/formatters.dart';
 import '../../../core/widgets/brand_mark.dart';
 import '../../../core/widgets/common.dart';
 import '../../../infrastructure/database/app_database.dart'
-    show KindTotal, TransferOrigin, TransferStatus;
+    show TransferOrigin, TransferStatus;
 import '../../../infrastructure/storage/preferences.dart';
 import '../../../infrastructure/telegram/telegram_client.dart';
 import '../../backup/data/background_health.dart';
@@ -38,13 +37,14 @@ import '../../takeout/data/takeout_import.dart';
 import '../../takeout/presentation/takeout_status.dart';
 import '../../transfers/data/transfer_queue.dart';
 import 'drive_health.dart';
+import 'home_storage.dart';
+import '../../../l10n/mobile_strings.dart';
+import '../../backup/presentation/backup_foreground_guidance.dart';
 
 /// What is in the drive and what is happening to it. What this phone was
 /// partway through playing first, when there is anything; then where the
-/// space goes, which doubles as the way into each kind of file and, once
-/// something is kept offline, into what this phone keeps; then the starred
-/// folders, each a tap from wherever it sits; then the files this phone
-/// opened or added lately. The first and the last stay off Home while
+/// recent files are; then starred folders and a compact storage summary.
+/// Continue Playing and Recent stay off Home while
 /// Settings says not to show Recent there.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -67,7 +67,7 @@ class HomeScreen extends ConsumerWidget {
     final starredRow = starred > 0
         ? ListTile(
             leading: const Icon(Icons.star_outline_rounded),
-            title: const Text('Starred'),
+            title: Text(MobileStrings.of(context).starred),
             trailing: Text(
               Formatters.number(starred),
               style: context.text.bodyMedium?.copyWith(
@@ -82,7 +82,7 @@ class HomeScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton(
         heroTag: 'home-fab',
         onPressed: () => FileActions.showCreateSheet(context, ref),
-        tooltip: 'New',
+        tooltip: MobileStrings.of(context).newItem,
         child: const Icon(Icons.add_rounded),
       ),
       body: RefreshIndicator(
@@ -97,39 +97,6 @@ class HomeScreen extends ConsumerWidget {
             const SliverToBoxAdapter(child: _Activity()),
             if (showsRecent)
               const SliverToBoxAdapter(child: _ContinuePlaying()),
-            if (summary != null && summary.fileCount > 0) ...[
-              const SliverToBoxAdapter(child: SectionHeader('Storage')),
-              SliverToBoxAdapter(
-                child: _Storage(
-                  summary: summary,
-                  offline: pinned ? offline ?? (0, 0) : null,
-                ),
-              ),
-            ],
-            if (starredFolders.isNotEmpty) ...[
-              SliverToBoxAdapter(
-                child: SectionHeader(
-                  'Starred',
-                  trailing: _SeeAll(onPressed: () => context.push('/starred')),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: ListGroup(
-                  children: [
-                    for (final folder in starredFolders.take(5))
-                      FolderListTile(
-                        folder: folder,
-                        subtitle: folderContentsLine(starredSizes?[folder.id]),
-                        onTap: () => context.go('/files/${folder.id}'),
-                        onLongPress: () =>
-                            FileActions.showFolderSheet(context, ref, folder),
-                        onMore: () =>
-                            FileActions.showFolderSheet(context, ref, folder),
-                      ),
-                  ],
-                ),
-              ),
-            ],
             if (recent == null)
               SliverToBoxAdapter(
                 child: switch (summary) {
@@ -144,7 +111,7 @@ class HomeScreen extends ConsumerWidget {
             else ...[
               SliverToBoxAdapter(
                 child: SectionHeader(
-                  'Recent',
+                  MobileStrings.of(context).recent,
                   trailing: _SeeAll(onPressed: () => context.push('/recent')),
                 ),
               ),
@@ -158,9 +125,9 @@ class HomeScreen extends ConsumerWidget {
                       StorageSummary(fileCount: 0) => const _NothingYet(),
                       _ => Column(
                         children: [
-                          const EmptyState(
-                            title: 'Nothing opened yet',
-                            message: 'Files you open, share or add show up here.',
+                          EmptyState(
+                            title: MobileStrings.of(context).nothingOpenedYet,
+                            message: MobileStrings.of(context).recentEmptyMessage,
                             compact: true,
                           ),
                           if (starredRow != null)
@@ -192,6 +159,39 @@ class HomeScreen extends ConsumerWidget {
                 },
               ),
             ],
+            if (starredFolders.isNotEmpty) ...[
+              SliverToBoxAdapter(
+                child: SectionHeader(
+                  MobileStrings.of(context).starred,
+                  trailing: _SeeAll(onPressed: () => context.push('/starred')),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: ListGroup(
+                  children: [
+                    for (final folder in starredFolders.take(5))
+                      FolderListTile(
+                        folder: folder,
+                        subtitle: folderContentsLine(starredSizes?[folder.id]),
+                        onTap: () => context.go('/files/${folder.id}'),
+                        onLongPress: () =>
+                            FileActions.showFolderSheet(context, ref, folder),
+                        onMore: () =>
+                            FileActions.showFolderSheet(context, ref, folder),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+            if (summary != null && summary.fileCount > 0) ...[
+              SliverToBoxAdapter(child: SectionHeader(MobileStrings.of(context).storage)),
+              SliverToBoxAdapter(
+                child: HomeStorage(
+                  summary: summary,
+                  offline: pinned ? offline ?? (0, 0) : null,
+                ),
+              ),
+            ],
             const SliverToBoxAdapter(child: SizedBox(height: 112)),
           ],
         ),
@@ -211,12 +211,12 @@ class _SeeAll extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextButton(
       style: TextButton.styleFrom(
-        minimumSize: const Size(0, 32),
+        minimumSize: const Size(48, 48),
         padding: const EdgeInsets.symmetric(horizontal: Space.s),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
       onPressed: onPressed,
-      child: const Text('See all'),
+      child: Text(MobileStrings.of(context).seeAll),
     );
   }
 }
@@ -242,23 +242,18 @@ class _Header extends ConsumerWidget {
               IconButton(
                 onPressed: () => context.push('/transfers'),
                 icon: const Icon(Icons.swap_vert_rounded),
-                tooltip: 'Transfers',
+                tooltip: MobileStrings.of(context).transfers,
               ),
               const SizedBox(width: Space.xs),
-              Tooltip(
-                message: 'Settings',
-                child: InkResponse(
-                  onTap: () => context.push('/settings'),
-                  radius: 24,
-                  child: CircleAvatar(
-                    radius: 17,
-                    backgroundColor: colors.surface2,
-                    child: Text(
-                      session?.initials ?? '?',
-                      style: context.text.labelMedium?.copyWith(
-                        color: colors.text,
-                      ),
-                    ),
+              IconButton(
+                tooltip: MobileStrings.of(context).settings,
+                onPressed: () => context.push('/settings'),
+                icon: CircleAvatar(
+                  radius: 17,
+                  backgroundColor: colors.surface2,
+                  child: Text(
+                    session?.initials ?? '?',
+                    style: context.text.labelMedium?.copyWith(color: colors.text),
                   ),
                 ),
               ),
@@ -274,20 +269,22 @@ class _Header extends ConsumerWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(Radii.control),
                 onTap: () => context.push('/search'),
-                child: SizedBox(
-                  height: 44,
-                  child: Row(
-                    children: [
-                      const SizedBox(width: Space.m),
-                      Icon(Icons.search_rounded, color: colors.text3, size: 22),
-                      const SizedBox(width: Space.m),
-                      Text(
-                        'Search files and folders',
-                        style: context.text.bodyLarge?.copyWith(
-                          color: colors.text3,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 48),
+                  child: Padding(
+                    padding: const EdgeInsets.all(Space.m),
+                    child: Row(
+                      children: [
+                        Icon(Icons.search_rounded, color: colors.text2, size: 22),
+                        const SizedBox(width: Space.m),
+                        Expanded(
+                          child: Text(
+                            MobileStrings.of(context).searchFilesAndFolders,
+                            style: context.text.bodyLarge?.copyWith(color: colors.text2),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -371,7 +368,9 @@ class _Activity extends ConsumerWidget {
     );
 
     return AnimatedSize(
-      duration: const Duration(milliseconds: 200),
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : const Duration(milliseconds: 200),
       curve: Curves.easeOut,
       child: Padding(
         padding: const EdgeInsets.only(top: Space.l),
@@ -379,6 +378,9 @@ class _Activity extends ConsumerWidget {
           children: [
             _line(context, ref, top),
             if (second != null) _line(context, ref, second),
+            BackupForegroundGuidance(
+              visible: backup.enabled && (backup.isWorking || backup.remaining > 0),
+            ),
             if (takeoutWorthShowing(ref.watch(takeoutImportProvider))) const TakeoutStatusLine(),
           ],
         ),
@@ -601,193 +603,3 @@ class _NothingYet extends ConsumerWidget {
   }
 }
 
-/// Total, which opens Space, one proportional bar, then a row per kind that
-/// opens it, and the way into what this phone keeps offline.
-class _Storage extends StatelessWidget {
-  const _Storage({required this.summary, required this.offline});
-
-  final StorageSummary summary;
-
-  /// How many files are kept offline and their size, or null while nothing
-  /// is, which leaves the row out.
-  final (int, int)? offline;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    final kinds = [...summary.totals.where((t) => t.count > 0)]
-      ..sort((a, b) => b.bytes.compareTo(a.bytes));
-
-    return ListGroup(
-      children: [
-        InkWell(
-          onTap: () => context.push('/space'),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              Space.gutter,
-              Space.l,
-              Space.gutter,
-              Space.l,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text.rich(
-                        TextSpan(
-                          children: [
-                            TextSpan(
-                              text: Formatters.bytes(summary.bytes),
-                              style: context.text.titleMedium,
-                            ),
-                            TextSpan(
-                              text:
-                                  '  in ${Formatters.count(summary.fileCount, 'file')}',
-                              style: context.text.bodyMedium,
-                            ),
-                          ],
-                        ),
-                        style: const TextStyle(fontFeatures: tabularFigures),
-                      ),
-                    ),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: colors.text3,
-                      size: 20,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: Space.m),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
-                  child: SizedBox(
-                    height: 6,
-                    width: double.infinity,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        for (final (index, total) in kinds.indexed) ...[
-                          if (index > 0)
-                            SizedBox(
-                              width: 2,
-                              child: ColoredBox(color: colors.surface),
-                            ),
-                          Expanded(
-                            flex: (total.bytes * 1000 ~/ summary.bytes).clamp(
-                              6,
-                              1000,
-                            ),
-                            child: ColoredBox(
-                              color: FileStyle.forKind(total.kind)
-                                  .resolve(context, colors.text3),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        for (final total in kinds) _KindRow(total: total),
-        if (offline case (final count, final bytes)?)
-          _OfflineRow(count: count, bytes: bytes),
-      ],
-    );
-  }
-}
-
-/// Files kept on this phone for use without a connection, laid out as a
-/// kind row is, opening the Offline screen.
-class _OfflineRow extends StatelessWidget {
-  const _OfflineRow({required this.count, required this.bytes});
-
-  final int count;
-  final int bytes;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return InkWell(
-      onTap: () => context.push('/offline'),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: Space.gutter,
-          vertical: 14,
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.offline_pin_outlined, size: 22, color: colors.text2),
-            const SizedBox(width: Space.l),
-            Expanded(
-              child: Text('Available offline', style: context.text.titleSmall),
-            ),
-            Text(
-              '${Formatters.count(count, 'file')} · ${Formatters.bytes(bytes)}',
-              style: context.text.bodyMedium?.copyWith(
-                fontFeatures: tabularFigures,
-              ),
-            ),
-            const SizedBox(width: Space.xs),
-            Icon(Icons.chevron_right_rounded, color: colors.text3, size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _KindRow extends StatelessWidget {
-  const _KindRow({required this.total});
-
-  final KindTotal total;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    final style = FileStyle.forKind(total.kind);
-    return InkWell(
-      onTap: () => context.push('/category/${total.kind.name}'),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: Space.gutter,
-          vertical: 14,
-        ),
-        child: Row(
-          children: [
-            Icon(
-              style.icon,
-              size: 22,
-              color: style.resolve(context, colors.text2),
-            ),
-            const SizedBox(width: Space.l),
-            Expanded(
-              child: Text(total.kind.label, style: context.text.titleSmall),
-            ),
-            Text(
-              '${Formatters.count(total.count, _noun(total.kind))} · '
-              '${Formatters.bytes(total.bytes)}',
-              style: context.text.bodyMedium?.copyWith(
-                fontFeatures: tabularFigures,
-              ),
-            ),
-            const SizedBox(width: Space.xs),
-            Icon(Icons.chevron_right_rounded, color: colors.text3, size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  static String _noun(FileKind kind) => switch (kind) {
-    FileKind.image => 'photo',
-    FileKind.video => 'video',
-    FileKind.audio => 'track',
-    FileKind.app => 'app',
-    _ => 'file',
-  };
-}

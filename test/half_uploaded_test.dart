@@ -150,10 +150,58 @@ void main() {
     TransferStatus statusOf(String fileId) => container.read(transferQueueProvider).byId('upload-$fileId')!.status;
     // The whole one landed while the app was away.
     expect(statusOf('whole'), TransferStatus.completed);
+    final recovered = container.read(transferQueueProvider).byId('upload-whole')!.row;
+    expect(recovered.doneBytes, recovered.totalBytes);
+    expect(recovered.completedParts, recovered.partCount);
+    final persisted = (await db.allTransfers()).singleWhere((row) => row.id == recovered.id);
+    expect(persisted.doneBytes, recovered.totalBytes);
+    expect(persisted.completedParts, recovered.partCount);
     // The other still has its second part to send: it goes on, and with its
     // file gone from the phone it fails, saying so, rather than pass for done.
     expect(statusOf('half'), isNot(TransferStatus.completed));
     final ended = await queue.whenFinished('upload-half').timeout(const Duration(seconds: 5));
     expect(ended.status, TransferStatus.failed);
+  });
+
+  test('restart preserves a user pause and the original upload source', () async {
+    final original = File('${dir.path}/original.mp4');
+    await original.writeAsBytes([1, 2, 3, 4]);
+    await db.saveTransfers([
+      _interrupted('paused').copyWith(
+        status: TransferStatus.paused,
+        sourcePath: Value(original.path),
+      ),
+    ]);
+    final container = open();
+    final queue = container.read(transferQueueProvider.notifier);
+    await queue.loaded;
+    final row = container.read(transferQueueProvider).byId('upload-paused')!.row;
+    expect(row.status, TransferStatus.paused);
+    expect(row.completedParts, 1);
+    expect(row.doneBytes, 1500);
+    expect(await original.readAsBytes(), [1, 2, 3, 4]);
+  });
+
+  test('restart reports an interrupted staging copy without uploading its bytes', () async {
+    final source = '${dir.path}/staged.mp4';
+    final partial = File('$source.part');
+    await partial.writeAsBytes([1, 2]);
+    await db.saveTransfers([
+      _interrupted('staged').copyWith(
+        sourcePath: Value(source),
+        ownsSource: true,
+        completedParts: 0,
+        doneBytes: 0,
+      ),
+    ]);
+    final container = open();
+    final queue = container.read(transferQueueProvider.notifier);
+    await queue.loaded;
+    final row = container.read(transferQueueProvider).byId('upload-staged')!.row;
+    expect(row.status, TransferStatus.failed);
+    expect(row.error, isNotEmpty);
+    expect(await partial.exists(), isFalse);
+    expect(await File(source).exists(), isFalse);
+    expect(await container.read(driveRepositoryProvider).isWhole('staged'), isFalse);
   });
 }

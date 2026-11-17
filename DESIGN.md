@@ -108,6 +108,11 @@ happening, not a place, so it shows as a status line above the bar (and in
 Home's Activity group) while it runs; its full list is one tap away.
 Settings lives under the avatar on Home.
 
+Home puts activity first, then Continue Playing when present, Recent,
+starred folders, and Storage. Storage starts with its total and an
+expandable category breakdown; expansion lasts for the current drive
+session. The Recent preference also controls Continue Playing.
+
 ## Patterns
 
 - **Rows over cards.** Lists are full-bleed rows with inset dividers. Cards

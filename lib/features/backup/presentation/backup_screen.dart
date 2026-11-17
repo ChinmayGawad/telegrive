@@ -22,6 +22,7 @@ import '../data/backup_worker.dart';
 import '../data/phone_folders.dart';
 import '../data/watched_folders.dart';
 import 'backup_card.dart';
+import 'backup_foreground_guidance.dart';
 import 'backup_pause_sheet.dart';
 import 'duplicates_sheet.dart';
 import 'free_up_space_sheet.dart';
@@ -112,6 +113,7 @@ class BackupScreen extends ConsumerWidget {
         padding: const EdgeInsets.only(bottom: Space.x4),
         children: [
           const BackupStatusPanel(),
+          BackupForegroundGuidance(visible: backup.enabled),
           // Home's "Backup stopped" and "Backup is paused" lines open this
           // screen, so the way to carry on is here too, not only on Home.
           if (backup.phase

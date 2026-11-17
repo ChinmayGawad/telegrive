@@ -2218,7 +2218,11 @@ class TransferQueue extends Notifier<TransfersState> {
       // In the drive whole: it landed while the app was away. A split file
       // with a part still to go isn't, and carries on from its last part.
       if (await _repository.isWhole(row.fileId)) {
-        await _finish(row.copyWith(status: TransferStatus.completed));
+        await _finish(row.copyWith(
+          status: TransferStatus.completed,
+          doneBytes: row.totalBytes,
+          completedParts: row.partCount,
+        ));
         continue;
       }
       final copy = row.origin == TransferOrigin.fromChat;

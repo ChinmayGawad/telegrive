@@ -78,6 +78,15 @@ final privateOutOfSightProvider = Provider<OutOfSight>((ref) {
 /// fingerprint, face or screen lock, and closes once none of its pages is
 /// left, when the app goes to the background, or when it is locked.
 class PrivateSpace extends Notifier<bool> with WidgetsBindingObserver {
+  Future<void> _contentHidden = Future<void>.value();
+
+  /// Snapshot protection waits for private viewers' exit animations too.
+  Future<void> get contentHidden => _contentHidden;
+
+  void hidingContent(Iterable<Future<dynamic>> exits) {
+    _contentHidden = Future.wait(exits).then((_) {});
+  }
+
   /// Set while the prompt is up and for [_promptGrace] after: some phones
   /// send the app to the background for the prompt and report it a moment
   /// later, which isn't leaving.

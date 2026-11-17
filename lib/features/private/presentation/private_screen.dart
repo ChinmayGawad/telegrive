@@ -141,7 +141,13 @@ class _PrivateGateState extends ConsumerState<PrivateGate> {
       final route = _route;
       if (was != true || open || route == null || !_space.isFirst(this)) return;
       if (route.isCurrent) return;
-      Navigator.of(context).popUntil((r) => r == route || r.isFirst);
+      final exits = <Future<dynamic>>[];
+      Navigator.of(context).popUntil((r) {
+        if (r == route || r.isFirst) return true;
+        if (r is TransitionRoute<dynamic>) exits.add(r.completed);
+        return false;
+      });
+      _space.hidingContent(exits);
     });
     if (ref.watch(privateSpaceProvider)) return widget.child;
     if (!_asked) {

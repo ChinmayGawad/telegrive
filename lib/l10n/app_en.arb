@@ -1,0 +1,22 @@
+{
+  "@@locale": "en",
+  "backupPromptTitle": "Back up this phone's photos?",
+  "backupPromptBody": "Telegrive copies your photos and videos to your drive in full quality. It uses Wi-Fi only unless you allow mobile data.",
+  "backupUnattendedBody": "New photos back up automatically when your backup settings and Android allow it.",
+  "backupForegroundGuidance": "Keep Telegrive open while photos back up. Backup continues when you reopen it.",
+  "turnOnBackup": "Turn on backup",
+  "notNow": "Not now",
+  "backupNeedsAccess": "Backup needs photo access. You can turn it on later in Photos.",
+  "recent": "Recent",
+  "starred": "Starred",
+  "storage": "Storage",
+  "showStorageCategories": "Show storage categories",
+  "hideStorageCategories": "Hide storage categories",
+  "seeAll": "See all",
+  "searchFilesAndFolders": "Search files and folders",
+  "settings": "Settings",
+  "transfers": "Transfers",
+  "newItem": "New",
+  "nothingOpenedYet": "Nothing opened yet",
+  "recentEmptyMessage": "Files you open, share or add show up here."
+}

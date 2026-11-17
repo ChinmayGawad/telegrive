@@ -944,8 +944,23 @@ one left by a build from before the first release, whose schema went up to
 14: versions 10 to 14 keep what they hold, and older ones start empty for
 the channel to fill again.
 
-Run `flutter analyze` and `flutter test` before pushing, on a Mac so the
-backup tests that read photos run too; nothing runs them on GitHub.
+Run `flutter gen-l10n`, `flutter analyze` and `flutter test` before pushing,
+on a Mac so the backup tests that read photos run too. The Mobile checks
+workflow runs analysis and tests on macOS with Flutter 3.47.3 (Dart 3.13.3).
+It also renders Home, backup and sharing screenshots as review artifacts.
+
+New and changed mobile copy lives in `lib/l10n/app_en.arb`. Flutter generates
+the ignored `lib/l10n/generated/` sources. The rest of the app remains
+English pending a separate localization pass.
+
+On iPhone, `telegrive/security` coordinates a native opaque app-switcher
+cover with Flutter. Each inactive cycle increments a native generation;
+only a matching foreground acknowledgement after protected frames can
+remove the cover. Private viewer exits are awaited unless the app-lock
+screen already covers them, since its TickerMode pauses those animations.
+This protects app-switcher snapshots, not screenshots taken while using
+the app. Verify the native tests and lifecycle cases on an iPhone before
+release; Dart widget tests cannot prove UIKit snapshot timing.
 
 ## Releases
 

@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/config/app_config.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../features/backup/data/background_health.dart';
 import '../features/backup/data/backup_controller.dart';
 import '../features/backup/data/watched_folders.dart';
@@ -32,6 +33,7 @@ import 'app_shell.dart';
 import 'router.dart';
 import 'theme/app_theme.dart';
 import '../features/lock/presentation/lock_gate.dart';
+import '../features/lock/presentation/privacy_snapshot_gate.dart';
 
 class TelegriveApp extends ConsumerStatefulWidget {
   const TelegriveApp({super.key});
@@ -170,14 +172,19 @@ class _TelegriveAppState extends ConsumerState<TelegriveApp>
       darkTheme: AppTheme.dark(),
       themeMode: ref.watch(themeModeProvider),
       routerConfig: router,
-      builder: (context, child) => LockGate(
-        child: BulkStripOverShell(
-          router: router,
-          popups: popups,
-          child: child ?? const SizedBox.shrink(),
+      builder: (context, child) => PrivacySnapshotGate(
+        child: LockGate(
+          child: BulkStripOverShell(
+            router: router,
+            popups: popups,
+            child: child ?? const SizedBox.shrink(),
+          ),
         ),
       ),
-      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      localizationsDelegates: [
+        AppLocalizations.delegate,
+        ...GlobalMaterialLocalizations.delegates,
+      ],
       supportedLocales: const [Locale('en')],
     );
   }
